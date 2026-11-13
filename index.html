@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SciSim Lab - Interactive Science Explorer</title>
+  <style>
+    :root {
+      --bg: #0a0f1d;
+      --card: #131b2e;
+      --border: #23314d;
+      --accent: #38bdf8;
+      --primary: #6366f1;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+    header { padding: 1.25rem 2rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: rgba(10, 15, 29, 0.85); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 50; }
+    .brand { display: flex; align-items: center; gap: 0.75rem; font-weight: 700; font-size: 1.25rem; }
+    .badge-icon { background: linear-gradient(135deg, var(--accent), var(--primary)); padding: 0.4rem 0.6rem; border-radius: 8px; color: #fff; font-size: 0.9rem; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; width: 100%; flex: 1; }
+    .hero { text-align: center; margin-bottom: 1.5rem; }
+    .hero h1 { font-size: 2.25rem; font-weight: 800; margin-bottom: 0.5rem; background: linear-gradient(to right, #fff, var(--muted)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p { color: var(--muted); font-size: 1.05rem; }
+
+    .byop-banner { display: flex; justify-content: space-between; align-items: center; background: rgba(56, 189, 248, 0.08); border: 1px dashed var(--accent); border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1.5rem; font-size: 0.9rem; }
+    .byop-banner input { background: #0e1526; border: 1px solid var(--border); color: #fff; padding: 0.4rem 0.75rem; border-radius: 6px; font-size: 0.85rem; width: 260px; }
+
+    .sim-layout { display: grid; grid-template-columns: 1fr 380px; gap: 1.5rem; }
+    .canvas-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+    .card-top { padding: 1rem 1.25rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    canvas { width: 100%; height: 420px; background: #060913; display: block; }
+    .sim-controls { padding: 1rem 1.25rem; border-top: 1px solid var(--border); display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+    .slider-wrap { display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--muted); }
+    input[type="range"] { accent-color: var(--accent); }
+
+    .explainer-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; display: flex; flex-direction: column; overflow: hidden; }
+    .explainer-body { padding: 1.25rem; flex: 1; font-size: 0.92rem; line-height: 1.6; color: #cbd5e1; overflow-y: auto; max-height: 480px; }
+    .topic-btn-row { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .t-btn { background: var(--card); border: 1px solid var(--border); color: var(--muted); padding: 0.6rem 1.25rem; border-radius: 10px; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
+    .t-btn.active { border-color: var(--accent); color: #fff; background: rgba(56, 189, 248, 0.15); font-weight: 600; }
+
+    button.btn-ask { background: linear-gradient(135deg, var(--accent), var(--primary)); color: #fff; border: none; border-radius: 8px; padding: 0.6rem 1.25rem; font-weight: 600; cursor: pointer; }
+    footer { border-top: 1px solid var(--border); padding: 1.5rem; text-align: center; color: var(--muted); font-size: 0.9rem; margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 0.75rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="badge-icon">🪐</span>
+      <span>SciSim Lab</span>
+    </div>
+    <a href="https://pollinations.ai/?ref=badge" target="_blank">
+      <img src="https://raw.githubusercontent.com/pollinations/pollinations/main/packages/ui/src/brand/badge-made-with.svg" alt="Made with pollinations.ai" style="height: 32px;">
+    </a>
+  </header>
+
+  <div class="container">
+    <div class="hero">
+      <h1>Turn Science Topics into Interactive Explorations</h1>
+      <p>Interactive real-time physics and biology simulations paired with adaptive AI-guided explanations via Pollinations.ai</p>
+    </div>
+
+    <div class="byop-banner">
+      <div>
+        <strong>🔑 Bring Your Own Pollen (BYOP):</strong> Enter your Pollinations API key to power custom science explorations.
+      </div>
+      <input type="password" id="apiKeyInput" placeholder="Enter key (or leave empty for free tier)" onchange="saveKey(this.value)">
+    </div>
+
+    <div class="topic-btn-row">
+      <button class="t-btn active" id="btn-orbit" onclick="setTopic('orbit')">🌌 Gravitational Orbit & Kepler's Laws</button>
+      <button class="t-btn" id="btn-wave" onclick="setTopic('wave')">🌊 Double-Slit Wave Interference</button>
+      <button class="t-btn" id="btn-mitosis" onclick="setTopic('pendulum')">⚙️ Chaotic Double Pendulum</button>
+    </div>
+
+    <div class="sim-layout">
+      <div class="canvas-card">
+        <div class="card-top">
+          <strong id="simTitle">Gravitational Orbit Simulation</strong>
+          <span style="font-size:0.8rem; color:var(--accent);">Interactive Canvas Engine</span>
+        </div>
+        <canvas id="simCanvas"></canvas>
+        <div class="sim-controls">
+          <div class="slider-wrap">
+            <span>Velocity / Force:</span>
+            <input type="range" id="paramSlider" min="1" max="10" value="5" oninput="updateParam(this.value)">
+            <span id="sliderVal">5.0</span>
+          </div>
+          <button class="btn-ask" onclick="askAiExplainer()">⚡ Ask AI to Explain Live State</button>
+        </div>
+      </div>
+
+      <div class="explainer-card">
+        <div class="card-top">
+          <strong>AI Scientific Analysis</strong>
+          <span style="font-size:0.75rem; color:var(--muted);">gen.pollinations.ai</span>
+        </div>
+        <div class="explainer-body" id="aiExplainerText">
+          Select a simulation and adjust parameters with the slider. Click "Ask AI to Explain Live State" to receive an interactive scientific breakdown written by Pollinations AI.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <a href="https://pollinations.ai/?ref=badge" target="_blank">
+      <img src="https://raw.githubusercontent.com/pollinations/pollinations/main/packages/ui/src/brand/badge-made-with.svg" alt="Made with pollinations.ai" style="height: 32px;">
+    </a>
+    <p>Built with Pollinations.ai API for POLLEN-QUEST #19181 • Interactive Science Explorer</p>
+  </footer>
+
+  <script>
+    let currentTopic = 'orbit';
+    let simParam = 5.0;
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    let animId = null;
+
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = 420;
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    function saveKey(val) {
+      if (val) localStorage.setItem('pollinations_key', val.trim());
+      else localStorage.removeItem('pollinations_key');
+    }
+
+    function updateParam(v) {
+      simParam = parseFloat(v);
+      document.getElementById('sliderVal').textContent = simParam.toFixed(1);
+    }
+
+    // Orbit Sim Variables
+    let angle = 0;
+    let trail = [];
+
+    // Wave Sim Variables
+    let waveT = 0;
+
+    // Double Pendulum Variables
+    let r1 = 90, r2 = 90, m1 = 10, m2 = 10, a1 = Math.PI/2, a2 = Math.PI/2, a1_v = 0, a2_v = 0, g = 1;
+    let pendTrail = [];
+
+    function drawOrbit() {
+      ctx.fillStyle = 'rgba(6, 9, 19, 0.2)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+
+      // Draw central star
+      ctx.beginPath();
+      ctx.arc(cx, cy, 22, 0, Math.PI * 2);
+      ctx.fillStyle = '#f59e0b';
+      ctx.shadowBlur = 25;
+      ctx.shadowColor = '#f59e0b';
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Planet orbit
+      const rx = 140 + simParam * 12;
+      const ry = 80 + simParam * 6;
+      angle += 0.015 * (simParam / 5);
+
+      const px = cx + Math.cos(angle) * rx;
+      const py = cy + Math.sin(angle) * ry;
+
+      trail.push({x: px, y: py});
+      if (trail.length > 50) trail.shift();
+
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+      ctx.lineWidth = 1.5;
+      trail.forEach((p, idx) => {
+        if (idx === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      });
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(px, py, 9, 0, Math.PI * 2);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fill();
+    }
+
+    function drawWave() {
+      ctx.fillStyle = '#060913';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      waveT += 0.05 * (simParam / 5);
+
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const d = 40;
+
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+      ctx.lineWidth = 1.5;
+
+      for (let r = (waveT * 20) % 25; r < 240; r += 25) {
+        ctx.beginPath();
+        ctx.arc(cx - d, cy, r, -Math.PI/2, Math.PI/2);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(cx + d, cy, r, -Math.PI/2, Math.PI/2);
+        ctx.stroke();
+      }
+    }
+
+    function drawPendulum() {
+      ctx.fillStyle = 'rgba(6, 9, 19, 0.25)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const cx = canvas.width / 2;
+      const cy = 100;
+      g = 0.5 * (simParam / 5);
+
+      let num1 = -g * (2 * m1 + m2) * Math.sin(a1) - m2 * g * Math.sin(a1 - 2 * a2) - 2 * Math.sin(a1 - a2) * m2 * (a2_v * a2_v * r2 + a1_v * a1_v * r1 * Math.cos(a1 - a2));
+      let den1 = r1 * (2 * m1 + m2 - m2 * Math.cos(2 * a1 - 2 * a2));
+      let a1_a = num1 / den1;
+
+      let num2 = 2 * Math.sin(a1 - a2) * (a1_v * a1_v * r1 * (m1 + m2) + g * (m1 + m2) * Math.cos(a1) + a2_v * a2_v * r2 * m2 * Math.cos(a1 - a2));
+      let den2 = r2 * (2 * m1 + m2 - m2 * Math.cos(2 * a1 - 2 * a2));
+      let a2_a = num2 / den2;
+
+      let x1 = cx + r1 * Math.sin(a1);
+      let y1 = cy + r1 * Math.cos(a1);
+      let x2 = x1 + r2 * Math.sin(a2);
+      let y2 = y1 + r2 * Math.cos(a2);
+
+      ctx.strokeStyle = '#6366f1';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(x2, y2, 6, 0, Math.PI*2);
+      ctx.fill();
+
+      a1_v += a1_a;
+      a2_v += a2_a;
+      a1 += a1_v;
+      a2 += a2_v;
+      a1_v *= 0.999;
+      a2_v *= 0.999;
+    }
+
+    function loop() {
+      if (currentTopic === 'orbit') drawOrbit();
+      else if (currentTopic === 'wave') drawWave();
+      else drawPendulum();
+      animId = requestAnimationFrame(loop);
+    }
+
+    function setTopic(topic) {
+      currentTopic = topic;
+      document.querySelectorAll('.t-btn').forEach(b => b.classList.remove('active'));
+      if (topic === 'orbit') {
+        document.getElementById('btn-orbit').classList.add('active');
+        document.getElementById('simTitle').textContent = "Gravitational Orbit Simulation";
+      } else if (topic === 'wave') {
+        document.getElementById('btn-wave').classList.add('active');
+        document.getElementById('simTitle').textContent = "Double-Slit Wave Interference";
+      } else {
+        document.getElementById('btn-mitosis').classList.add('active');
+        document.getElementById('simTitle').textContent = "Chaotic Double Pendulum";
+      }
+      trail = [];
+      pendTrail = [];
+      askAiExplainer();
+    }
+
+    async function askAiExplainer() {
+      const box = document.getElementById('aiExplainerText');
+      box.textContent = "Consulting Pollinations scientific intelligence model...";
+      const apiKey = localStorage.getItem('pollinations_key') || "";
+
+      const prompt = `You are an interactive science explainer. Explain what is happening in the current simulation: '${currentTopic}' with parameter intensity set to ${simParam}. Detail the governing scientific laws (e.g. Kepler/Newton, Huygens/Fresnel, or Chaos theory) in 2 engaging, concise paragraphs. Explain what happens when the parameter changes.`;
+
+      try {
+        const headers = { "Content-Type": "application/json" };
+        if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
+
+        const res = await fetch("https://gen.pollinations.ai/v1/chat/completions", {
+          method: "POST",
+          headers: headers,
+          body: JSON.stringify({
+            model: "openai",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.6,
+            max_tokens: 350
+          })
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        box.textContent = data.choices?.[0]?.message?.content || "No explanation returned.";
+      } catch (err) {
+        box.innerHTML = `<span style="color:#ef4444;">Error: ${err.message}. Try adding a BYOP key if rate-limited.</span>`;
+      }
+    }
+
+    window.onload = () => {
+      resizeCanvas();
+      const saved = localStorage.getItem('pollinations_key') || "";
+      if (saved) document.getElementById('apiKeyInput').value = saved;
+      loop();
+      askAiExplainer();
+    };
+  </script>
+</body>
+</html>
